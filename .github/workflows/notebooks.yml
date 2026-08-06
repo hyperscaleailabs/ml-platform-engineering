@@ -1,7 +1,10 @@
 name: notebooks
 
 on:
+  # Restricted to main so a branch with an open PR does not run this twice - once for the push
+  # and once for the pull_request - on every commit. Branch work is covered by pull_request.
   push:
+    branches: [main]
     paths:
       - "notebooks/**"
       - "scripts/smoke_test.sh"
@@ -12,6 +15,12 @@ on:
       - "scripts/smoke_test.sh"
       - ".github/workflows/notebooks.yml"
   workflow_dispatch:
+
+# Executing the labs takes tens of minutes; superseded commits should not hold runners. Runs on
+# main are never cancelled, so the default branch always keeps a complete history of results.
+concurrency:
+  group: notebooks-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   execute:
