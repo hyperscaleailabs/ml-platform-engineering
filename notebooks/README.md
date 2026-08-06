@@ -5,12 +5,16 @@ model and running the workload across a compute fleet. Each one runs unmodified 
 or **locally**, and every lab verifies its own claims with inline `check(...)` assertions rather
 than asking you to eyeball a plot.
 
-| # | Lab | Stack | Runtime (Colab T4) | GPU |
+| # | Lab | Stack | Runtime on CPU | GPU |
 |---|---|---|---|---|
-| 1 | [PyTorch Foundations: Logistic Regression and an MLP Classifier](01_pytorch_lr_mlp.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hyperscaleailabs/ml-platform-engineering/blob/main/notebooks/01_pytorch_lr_mlp.ipynb) | PyTorch, scikit-learn | ~5 min | no |
-| 2 | [Transformers from Scratch](02_transformer_pytorch.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hyperscaleailabs/ml-platform-engineering/blob/main/notebooks/02_transformer_pytorch.ipynb) | PyTorch | ~10 min | optional |
-| 3 | [Hugging Face: Qwen + LoRA](03_hf_qwen_lora.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hyperscaleailabs/ml-platform-engineering/blob/main/notebooks/03_hf_qwen_lora.ipynb) | transformers, PEFT, datasets | ~12 min | recommended |
-| 4 | [JAX and Ray: Qwen + LoRA at platform scale](04_jax_ray_qwen_lora.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hyperscaleailabs/ml-platform-engineering/blob/main/notebooks/04_jax_ray_qwen_lora.ipynb) | JAX, Optax, Ray | ~20 min | recommended |
+| 1 | [PyTorch Foundations: Logistic Regression and an MLP Classifier](01_pytorch_lr_mlp.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hyperscaleailabs/ml-platform-engineering/blob/main/notebooks/01_pytorch_lr_mlp.ipynb) | PyTorch, scikit-learn | ~3 min | not needed |
+| 2 | [Transformers from Scratch](02_transformer_pytorch.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hyperscaleailabs/ml-platform-engineering/blob/main/notebooks/02_transformer_pytorch.ipynb) | PyTorch | ~22 min | optional |
+| 3 | [Hugging Face: Qwen + LoRA](03_hf_qwen_lora.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hyperscaleailabs/ml-platform-engineering/blob/main/notebooks/03_hf_qwen_lora.ipynb) | transformers, PEFT, datasets | ~20 min | recommended |
+| 4 | [JAX and Ray: Qwen + LoRA at platform scale](04_jax_ray_qwen_lora.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hyperscaleailabs/ml-platform-engineering/blob/main/notebooks/04_jax_ray_qwen_lora.ipynb) | JAX, Optax, Ray | ~15 min | recommended |
+
+Runtimes are **measured** on an Apple M4 CPU at each lab's default settings. A Colab T4 GPU is
+several times faster for Labs 2 through 4. Each lab's header names an environment variable
+combination that gives a much quicker pass with every assertion still holding.
 
 The labs are cumulative. Lab 2 builds the exact architecture (RMSNorm, RoPE, grouped-query
 attention, SwiGLU, tied embeddings) that Labs 3 and 4 then fine-tune and reimplement, using
@@ -62,7 +66,23 @@ Common knobs (each notebook lists its own in the config block at the top):
 | `LAB_N_TRAIN` / `LAB_N_EVAL` | Dataset subset sizes (Labs 3 and 4) |
 | `LAB_BATCH_SIZE` | Training batch size |
 | `LAB_MODEL_ID` | Any Qwen2/Qwen3 checkpoint, e.g. `Qwen/Qwen3-0.6B` (Labs 3 and 4) |
+| `LAB_DEVICE` | Force `cuda`, `mps` or `cpu` in Lab 3 |
 | `LAB_SKIP_RAY` | Set to `1` to skip Lab 4's Ray section |
+| `LAB_RAY_WORKERS` | Parallel trials in Lab 4's sweep (default 2) |
+
+### Two hardware notes worth reading before you start
+
+**Apple silicon, Lab 3.** Labs 1 and 2 use the MPS backend automatically and are fine. Lab 3 does
+**not**: running a 0.5B model in fp32 with long prompts through MPS reliably produced
+`command buffer exited with error status / Internal Error` from the Metal driver during development
+- a driver-level failure PyTorch cannot catch or retry. Lab 3 therefore defaults to CPU on a Mac.
+If your setup handles it, opt back in with `LAB_DEVICE=mps`.
+
+**Memory, Lab 4.** The Ray section keeps one shared copy of the base weights in the object store
+(~2 GB) plus roughly 2 GB of private JAX memory per worker, so budget about 8 GB at the default of
+two workers. Per-process RSS looks higher because the shared mapping is counted in every process
+that maps it - which is exactly the effect the object store exists to produce. `LAB_SKIP_RAY=1`
+skips the section.
 
 ## Notebooks are shipped with outputs cleared
 
