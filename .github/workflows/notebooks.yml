@@ -29,6 +29,10 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          # setup-python only globs for requirements.txt / pyproject.toml by default, and this
+          # repo splits its dependencies per lab. Without this the step fails outright rather
+          # than skipping the cache.
+          cache-dependency-path: notebooks/requirements-*.txt
 
       - name: Install dependencies
         run: |
