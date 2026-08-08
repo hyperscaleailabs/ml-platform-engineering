@@ -36,15 +36,36 @@ lab_file() {
 
 # Reduced settings, small enough to be quick and large enough that every check still holds. These
 # are the values the labs were validated against, not guesses: shrink them further and the accuracy
-# assertions in Labs 3 and 4 start failing on undertraining rather than on a real defect, which is
-# the wrong kind of red build.
+# assertions start failing on undertraining rather than on a real defect, which is the wrong kind
+# of red build.
+#
+# Two profiles, selected with SMOKE_PROFILE (default "full"):
+#
+#   full  the validated settings, with margin on every threshold
+#   ci    the smallest budget that still passes, for a shared or constrained runner
+#
+# The "ci" numbers are measured floors, not guesses. Lab 1 at 40/8 epochs keeps real margin
+# (linear digits 0.9244 against a 0.90 floor, moons MLP 0.968 against 0.95). Lab 2 stays at 120
+# steps in both profiles because it genuinely cannot go lower: at 90 and at 60 steps the
+# data-leakage demonstration fails, since the leaky model needs enough training before its
+# flattering validation loss actually appears. Cutting it would buy a few seconds and trade a
+# real check for a spurious failure.
+PROFILE="${SMOKE_PROFILE:-full}"
+case "$PROFILE" in
+  full|ci) ;;
+  # Without this a typo would fall through to empty overrides and silently run the labs at their
+  # full interactive defaults - minutes of CI time, and a "pass" that tested something else.
+  *) echo "unknown SMOKE_PROFILE '$PROFILE' (expected 'full' or 'ci')" >&2; exit 2 ;;
+esac
+
 lab_env() {
-  case "$1" in
-    1) echo "LAB_EPOCHS=60 LAB_DIGIT_EPOCHS=12" ;;
-    2) echo "LAB_MAX_STEPS=120 LAB_EVAL_EVERY=60" ;;
-    3) echo "LAB_N_TRAIN=800 LAB_N_EVAL=48 LAB_MAX_STEPS=60 LAB_BATCH_SIZE=4 LAB_GRAD_ACCUM=1" ;;
-    4) echo "LAB_N_TRAIN=256 LAB_N_EVAL=32 LAB_MAX_STEPS=30 LAB_BATCH_SIZE=4 LAB_RAY_TRIAL_STEPS=8" ;;
-    *) echo "" ;;
+  case "$PROFILE:$1" in
+    full:1) echo "LAB_EPOCHS=60 LAB_DIGIT_EPOCHS=12" ;;
+    ci:1)   echo "LAB_EPOCHS=40 LAB_DIGIT_EPOCHS=8" ;;
+    *:2)    echo "LAB_MAX_STEPS=120 LAB_EVAL_EVERY=60" ;;
+    *:3)    echo "LAB_N_TRAIN=800 LAB_N_EVAL=48 LAB_MAX_STEPS=60 LAB_BATCH_SIZE=4 LAB_GRAD_ACCUM=1" ;;
+    *:4)    echo "LAB_N_TRAIN=256 LAB_N_EVAL=32 LAB_MAX_STEPS=30 LAB_BATCH_SIZE=4 LAB_RAY_TRIAL_STEPS=8" ;;
+    *)      echo "" ;;
   esac
 }
 

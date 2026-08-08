@@ -69,4 +69,8 @@ jobs:
           PY
 
       - name: Execute labs 1 and 2
+        # The "ci" profile trims the training budget to the smallest one that still passes every
+        # assertion. Run scripts/smoke_test.sh locally for the full-margin profile.
+        env:
+          SMOKE_PROFILE: ci
         run: bash scripts/smoke_test.sh

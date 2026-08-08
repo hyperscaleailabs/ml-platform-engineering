@@ -90,6 +90,21 @@ You get a clean diff on every commit and you run the code yourself rather than r
 else's cached results. `scripts/smoke_test.sh` executes Labs 1 and 2 with reduced settings and is
 what CI runs on every push.
 
+It has two profiles, selected with `SMOKE_PROFILE`:
+
+```bash
+scripts/smoke_test.sh                 # full - the validated settings, with margin (~55s)
+SMOKE_PROFILE=ci scripts/smoke_test.sh   # ci - smallest budget that still passes (~53s)
+scripts/smoke_test.sh all             # every lab, including the ~1 GB Qwen download
+```
+
+The `ci` numbers are measured floors rather than guesses, and the gap between the profiles is
+deliberately small. Lab 2 stays at 120 steps in **both**: at 90 and at 60 steps its data-leakage
+demonstration fails, because the leaky model needs enough training before its flattering
+validation loss appears. Shrinking it would save a few seconds and trade a real check for a
+spurious failure. Note also that notebook execution is not what dominates a CI run - installing
+PyTorch is - so there is little left to win here.
+
 ## A note on the `check(...)` calls
 
 Each lab defines:
