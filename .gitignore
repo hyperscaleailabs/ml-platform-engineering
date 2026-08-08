@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# Artifacts the notebook labs write into their working directory
+tinyshakespeare.txt
+qwen-lora-emotion/
+*.pt
+*.safetensors
+outputs/
+runs/
+wandb/
+
+# Hugging Face / Ray caches if HF_HOME or TMPDIR point into the repo
+.cache/
+ray_results/
+
+# OS
+.DS_Store

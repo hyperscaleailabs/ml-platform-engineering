@@ -1,0 +1,8 @@
+# Lab 4 - JAX and Ray. Install on top of requirements-core.txt and requirements-llm.txt
+# (Lab 4 uses transformers/datasets to load the reference model and the dataset).
+#
+# CPU wheels by default. For a CUDA GPU install instead:
+#   pip install -U "jax[cuda12]"
+jax>=0.4.30
+optax>=0.2
+ray>=2.9
