@@ -50,6 +50,10 @@ lab_file() {
 # data-leakage demonstration fails, since the leaky model needs enough training before its
 # flattering validation loss actually appears. Cutting it would buy a few seconds and trade a
 # real check for a spurious failure.
+#
+# For reference, on a GitHub ubuntu-latest runner the "ci" profile spends 17s on Lab 1 and 158s on
+# Lab 2 out of a ~4 minute job, so execution dominates and Lab 2 is the whole cost. There is no
+# knob left to turn there - only a decision about what Lab 2 should demonstrate.
 PROFILE="${SMOKE_PROFILE:-full}"
 case "$PROFILE" in
   full|ci) ;;

@@ -102,8 +102,12 @@ The `ci` numbers are measured floors rather than guesses, and the gap between th
 deliberately small. Lab 2 stays at 120 steps in **both**: at 90 and at 60 steps its data-leakage
 demonstration fails, because the leaky model needs enough training before its flattering
 validation loss appears. Shrinking it would save a few seconds and trade a real check for a
-spurious failure. Note also that notebook execution is not what dominates a CI run - installing
-PyTorch is - so there is little left to win here.
+spurious failure.
+
+That last point is where the CI budget actually goes. On a GitHub `ubuntu-latest` runner the job
+takes about 4 minutes, of which Lab 2 is 158s and Lab 1 is 17s - execution dominates, and Lab 2 is
+already at its floor. Shortening the run further means changing what Lab 2 demonstrates, not
+tuning a knob. (A developer laptop is misleading here: the same Lab 2 takes 40s on an Apple M4.)
 
 ## A note on the `check(...)` calls
 
