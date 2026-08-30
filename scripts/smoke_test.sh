@@ -12,11 +12,20 @@
 #   scripts/smoke_test.sh all        # every lab, including the ~1 GB Qwen download
 #   scripts/smoke_test.sh 3 4        # named labs only
 #
+# No activated environment is needed: with uv installed the script executes the labs in the
+# project environment, syncing the dependency groups the requested labs need.
+#
 # Written for bash 3.2 so it runs on a stock macOS shell as well as on CI - no associative arrays.
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NOTEBOOK_DIR="$REPO_ROOT/notebooks"
+
+# Run from the repository so `uv run` below resolves this project's environment rather than one
+# belonging to whatever directory the caller happened to be in. Every path here is absolute, and
+# nbconvert executes each notebook with its own copy's directory as the kernel's working
+# directory, so nothing else depends on where we were invoked from.
+cd "$REPO_ROOT" || exit 1
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
@@ -78,6 +87,34 @@ case "${1:-default}" in
   all)     LABS="1 2 3 4" ;;
   *)       LABS="$*" ;;
 esac
+
+# Provision the project environment unless one is already activated, so a fresh clone needs `uv
+# sync` and nothing else. The groups have to match the labs requested: uv syncs the environment to
+# exactly the groups it is given, so a blanket --all-groups would make a Labs 1-2 run (what CI
+# does) install transformers, JAX and Ray for nothing, while omitting them would uninstall those
+# packages again right before Lab 3 needs them. --frozen keeps this honest: the labs execute what
+# uv.lock pins rather than silently relocking.
+#
+# The labs are then run by putting .venv/bin on PATH - what `activate` does - rather than through
+# `uv run`. Ray inspects the driver's command line, and when it finds `uv run` there it tries to
+# propagate the uv project to its workers, which fails in Lab 4 because each notebook executes
+# from a temporary directory that has no pyproject.toml in it. Activating sidesteps that: Ray sees
+# an ordinary virtualenv.
+if [ -z "${VIRTUAL_ENV:-}" ] && command -v uv >/dev/null 2>&1; then
+  SYNC_GROUPS=""
+  case "$LABS" in
+    *4*) SYNC_GROUPS="--group jax" ;;   # the jax group includes llm
+    *3*) SYNC_GROUPS="--group llm" ;;
+  esac
+
+  echo "syncing project environment: uv sync --frozen $SYNC_GROUPS"
+  # shellcheck disable=SC2086  # word splitting of SYNC_GROUPS is intentional
+  uv sync --frozen $SYNC_GROUPS || exit 1
+
+  VIRTUAL_ENV="$REPO_ROOT/.venv"
+  PATH="$VIRTUAL_ENV/bin:$PATH"
+  export VIRTUAL_ENV PATH
+fi
 
 echo "running labs: $LABS"
 FAILED=""
