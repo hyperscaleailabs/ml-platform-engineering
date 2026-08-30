@@ -1,0 +1,60 @@
+[project]
+name = "ml-platform-engineering"
+version = "0.1.0"
+description = "ML platform engineering: infrastructure, tooling, and a four-part notebook lab series."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+license = "Apache-2.0"
+
+# Labs 1 and 2 - PyTorch foundations and transformers from scratch. These are also the packages
+# Colab already has preinstalled, which is why they are the base rather than a group.
+dependencies = [
+    "torch>=2.1",
+    "numpy>=1.24",
+    "matplotlib>=3.7",
+    "scikit-learn>=1.3",
+    "jupyterlab>=4.0",
+]
+
+# The labs are cumulative, and so are these groups: `jax` pulls in `llm` because Lab 4 loads the
+# reference model and dataset through transformers/datasets before reimplementing it in JAX.
+[dependency-groups]
+# Lab 3 - Hugging Face: Qwen + LoRA.
+llm = [
+    "transformers>=4.44",
+    "peft>=0.12",
+    "datasets>=2.20",
+    "accelerate>=0.33",
+]
+# Lab 4 - JAX and Ray.
+jax = [
+    { include-group = "llm" },
+    "jax>=0.4.30",
+    "optax>=0.2",
+    "ray>=2.9",
+]
+# Executing the labs non-interactively - scripts/smoke_test.sh and CI.
+dev = [
+    "nbconvert>=7.0",
+    "nbformat>=5.9",
+    "ipykernel>=6.29",
+]
+
+[tool.uv]
+# A repository of notebooks and scripts, not an importable package: there is nothing to build or
+# install into the environment beyond the dependencies themselves.
+package = false
+# `uv sync` gives you Labs 1 and 2 plus the tooling to execute them; add --group llm / --group jax
+# (or --all-groups) for Labs 3 and 4.
+default-groups = ["dev"]
+
+# CPU-only torch off the PyTorch index on Linux, which is what CI and any non-CUDA container want -
+# the default PyPI wheel there is the multi-gigabyte CUDA build. macOS resolves from PyPI, whose
+# wheel is the CPU/MPS one already. `explicit = true` keeps every other package on PyPI.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]

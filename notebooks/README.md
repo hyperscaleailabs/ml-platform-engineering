@@ -28,15 +28,27 @@ before running.
 
 ## Running locally
 
+Dependencies live in the repository's `pyproject.toml` and are managed with
+[uv](https://docs.astral.sh/uv/). One group per lab, and they are cumulative in the same way the
+labs are - `jax` includes `llm`, because Lab 4 loads its reference model through transformers:
+
 ```bash
-python -m venv .venv && source .venv/bin/activate    # Python 3.10 - 3.12
+uv sync                    # Labs 1 and 2 (plus the tooling smoke_test.sh needs)
+uv sync --group llm        # Lab 3
+uv sync --group jax        # Lab 4 (includes the llm group)
+uv sync --all-groups       # everything
 
-pip install -r notebooks/requirements-core.txt       # Labs 1 and 2
-pip install -r notebooks/requirements-llm.txt        # Lab 3
-pip install -r notebooks/requirements-jax.txt        # Lab 4
-
-jupyter lab notebooks/
+uv run jupyter lab notebooks/
 ```
+
+`uv sync` provisions Python 3.12 itself if the machine does not have it, and installs the exact
+versions in `uv.lock`. The project supports Python 3.10 - 3.12; `.python-version` selects the one
+CI uses. On Linux, torch resolves to the CPU wheel from the PyTorch index (see the `pytorch-cpu`
+index in `pyproject.toml`) rather than the multi-gigabyte CUDA build; for a CUDA machine, point
+that index at the matching `cu12x` URL.
+
+Prefer pip? `uv export --no-hashes --no-emit-project -o requirements.txt` writes a pinned
+requirements file from the same lock.
 
 Labs 3 and 4 download Qwen2.5-0.5B-Instruct (~1 GB) and the `dair-ai/emotion` dataset (~1 MB) from
 the Hugging Face Hub on first run, and cache them under `~/.cache/huggingface`. Both labs fall back
@@ -97,6 +109,10 @@ scripts/smoke_test.sh                 # full - the validated settings, with marg
 SMOKE_PROFILE=ci scripts/smoke_test.sh   # ci - smallest budget that still passes (~53s)
 scripts/smoke_test.sh all             # every lab, including the ~1 GB Qwen download
 ```
+
+Nothing needs to be activated first: unless you are already in a virtualenv, the script runs
+`uv sync --frozen` for the dependency groups the requested labs actually need, then puts
+`.venv/bin` on `PATH` for the run.
 
 The `ci` numbers are measured floors rather than guesses, and the gap between the profiles is
 deliberately small. Lab 2 stays at 120 steps in **both**: at 90 and at 60 steps its data-leakage

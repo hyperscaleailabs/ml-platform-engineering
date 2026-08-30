@@ -45,15 +45,20 @@ executed in CI.
 
 ## Getting Started
 
+Dependencies are managed with [uv](https://docs.astral.sh/uv/), and `uv.lock` pins every resolved
+version, so a clone reproduces the environment the labs were validated against rather than whatever
+PyPI happens to be serving today.
+
 ```bash
 git clone https://github.com/hyperscaleailabs/ml-platform-engineering.git
 cd ml-platform-engineering
 
-python -m venv .venv && source .venv/bin/activate
-pip install -r notebooks/requirements-core.txt
-
-jupyter lab notebooks/
+uv sync                      # Labs 1 and 2; installs Python 3.12 if you do not have it
+uv run jupyter lab notebooks/
 ```
+
+Labs 3 and 4 add their own dependency groups - `uv sync --group llm`, `uv sync --group jax`, or
+`uv sync --all-groups` for everything. See [notebooks/README.md](notebooks/README.md) for details.
 
 Or open Lab 1 directly in Colab with the badge above - no installation at all.
 
